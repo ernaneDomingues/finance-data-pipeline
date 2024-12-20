@@ -10,7 +10,7 @@ from openpyxl.workbook import Workbook
 from setup import SetupConfig
 from pathlib import Path
 import logging
-from app.utils.logger import configure_logging
+from app.utils import logger
 
 SETUP = SetupConfig()
 
@@ -30,6 +30,7 @@ def get_company_tickers(path):
 
 
 def stock_price_retriver(tickers, start_date, end_date, output_file):
+    logging.info("Pegando as cotações das empresas.")
     """
     Baixa cotações de ações de uma lista de tickers usando yfinance e salva em um arquivo Excel.
 
@@ -42,7 +43,7 @@ def stock_price_retriver(tickers, start_date, end_date, output_file):
     all_data = []
 
     for ticker in tickers:
-        print(f"Baixando dados de {ticker}...")
+        logging.info(f"Baixando dados de {ticker}...")
         try:
             # Baixa os dados da ação no período especificado
             df = yf.download(ticker, start=start_date, end=end_date)
@@ -55,21 +56,22 @@ def stock_price_retriver(tickers, start_date, end_date, output_file):
                 df.columns = [col if isinstance(col, str) else col[0] for col in df.columns]
                 all_data.append(df)
             else:
-                print(f"Dados indisponíveis para {ticker}.")
+                logging.info(f"Dados indisponíveis para {ticker}.")
         except Exception as e:
-            print(f"Erro ao processar {ticker}: {e}")
+            logging.error(f"Erro ao processar {ticker}: {e}")
 
     if all_data:
         # Concatena todos os DataFrames
         result = pd.concat(all_data, ignore_index=True)
         # Exporta para Excel
         result.to_excel(output_file, index=False, engine="openpyxl")
-        print(f"Dados exportados com sucesso para {output_file}.")
+        logging.info(f"Dados exportados com sucesso para {output_file}.")
     else:
-        print("Nenhum dado foi exportado, pois não foram encontrados dados válidos.")
+        logging.info("Nenhum dado foi exportado, pois não foram encontrados dados válidos.")
 
 
 if __name__ == "__main__":
     company_tickers = get_company_tickers(SETUP.RAW_PATH)
+    company_tickers.append('^BVSP')
     file_output = fr'{SETUP.RAW_PATH}\quotations.xlsx'
     stock_price_retriver(company_tickers, START_DAY, END_DAY, file_output)
